@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Maker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{font-family:system-ui,sans-serif;background:#1a1a1a;color:#eee;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+#menubar{height:32px;background:#2d2d2d;border-bottom:1px solid #444;display:flex;align-items:center;padding:0 8px;gap:4px;z-index:100;flex-shrink:0;}
+#menubar button{background:none;border:none;color:#ddd;padding:4px 10px;cursor:pointer;font-size:12px;border-radius:3px;}
+#menubar button:hover{background:#444;}
+#main{display:flex;flex:1;overflow:hidden;}
+#left-panel{width:220px;background:#252525;border-right:1px solid #444;display:flex;flex-direction:column;flex-shrink:0;}
+#panel-tabs{display:flex;border-bottom:1px solid #444;}
+#panel-tabs button{flex:1;background:none;border:none;color:#aaa;padding:6px 4px;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;}
+#panel-tabs button.active{color:#fff;border-bottom-color:#4a9eff;}
+#elements-panel{flex:1;overflow-y:auto;padding:8px;}
+#elements-panel::-webkit-scrollbar{width:4px;}
+#elements-panel::-webkit-scrollbar-thumb{background:#555;}
+.el-category{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;}
+.el-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;}
+.el-item{background:#333;border:1px solid #444;border-radius:4px;padding:8px 6px;cursor:grab;text-align:center;font-size:10px;color:#ccc;transition:background .15s;}
+.el-item:hover{background:#444;border-color:#666;}
+.el-item i{display:block;font-size:18px;margin-bottom:2px;color:#4a9eff;}
+#props-panel{height:320px;border-top:1px solid #444;overflow-y:auto;padding:8px;}
+#props-panel::-webkit-scrollbar{width:4px;}
+#props-panel::-webkit-scrollbar-thumb{background:#555;}
+.prop-label{font-size:10px;color:#888;margin:6px 0 2px;}
+.prop-row{display:flex;gap:4px;align-items:center;margin-bottom:4px;}
+.prop-row input,.prop-row select{flex:1;background:#333;border:1px solid #555;color:#eee;padding:3px 6px;font-size:11px;border-radius:3px;}
+.prop-row input[type=color]{width:32px;height:24px;padding:1px;border-radius:3px;cursor:pointer;}
+.prop-row input[type=number]{width:60px;}
+.prop-section{font-size:10px;color:#4a9eff;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px;}
+#canvas-wrap{flex:1;overflow:hidden;position:relative;background:#111;outline:none;}
+#canvas-bg{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 19px,#333 19px,#333 20px),repeating-linear-gradient(90deg,transparent,transparent 19px,#333 19px,#333 20px);}
+#canvas-container{position:absolute;transform-origin:0 0;}
+#canvas{position:relative;background:white;box-shadow:0 0 40px rgba(0,0,0,.5);overflow:hidden;}
+.obj{position:absolute;cursor:default;}
+.obj.selected{outline:2px solid #4a9eff;outline-offset:1px;}
+.obj.selected::after{content:'';position:absolute;inset:-1px;pointer-events:none;}
+.resize-handle{position:absolute;width:8px;height:8px;background:#4a9eff;border:1px solid #fff;border-radius:1px;z-index:10;}
+.rh-nw{top:-4px;left:-4px;cursor:nw-resize;}
+.rh-ne{top:-4px;right:-4px;cursor:ne-resize;}
+.rh-se{bottom:-4px;right:-4px;cursor:se-resize;}
+.rh-sw{bottom:-4px;left:-4px;cursor:sw-resize;}
+.rh-n{top:-4px;left:calc(50% - 4px);cursor:n-resize;}
+.rh-s{bottom:-4px;left:calc(50% - 4px);cursor:s-resize;}
+.rh-e{top:calc(50% - 4px);right:-4px;cursor:e-resize;}
+.rh-w{top:calc(50% - 4px);left:-4px;cursor:w-resize;}
+#statusbar{height:24px;background:#2d2d2d;border-top:1px solid #444;display:flex;align-items:center;padding:0 12px;gap:16px;font-size:11px;color:#888;flex-shrink:0;}
+#ctx-menu{position:fixed;background:#2d2d2d;border:1px solid #555;border-radius:5px;z-index:9999;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.5);display:none;}
+#ctx-menu div{padding:7px 14px;font-size:12px;cursor:pointer;color:#ddd;}
+#ctx-menu div:hover{background:#3a3a3a;}
+#ctx-menu hr{border:none;border-top:1px solid #444;margin:3px 0;}
+.props-empty{color:#666;font-size:11px;text-align:center;padding:20px 8px;}
+#layers-panel{flex:1;overflow-y:auto;padding:8px;display:none;}
+.layer-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;font-size:11px;cursor:pointer;color:#ccc;}
+.layer-item:hover,.layer-item.active{background:#333;}
+.layer-item i{font-size:14px;color:#888;}
+.page-item{display:flex;align-items:center;gap:4px;padding:5px 6px;border-radius:4px;font-size:11px;cursor:pointer;color:#ccc;border:1px solid transparent;margin-bottom:3px;}
+.page-item:hover{background:#333;}
+.page-item.active{background:#1a2e4a;border-color:#4a9eff;color:#fff;}
+.page-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.page-item-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s;}
+.page-item:hover .page-item-actions{opacity:1;}
+.page-act-btn{background:none;border:none;color:#888;cursor:pointer;padding:1px 3px;font-size:11px;border-radius:2px;}
+.page-act-btn:hover{background:#555;color:#fff;}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+</head>
+<body>
+
+<div id="menubar">
+  <button onclick="newProject()"><i class="ti ti-file"></i> New</button>
+  <button onclick="importProject()"><i class="ti ti-upload"></i> Import</button>
+  <button onclick="exportProject()"><i class="ti ti-download"></i> Export</button>
+  <button onclick="downloadHTML()"><i class="ti ti-code"></i> Download HTML</button>
+  <span style="width:1px;height:16px;background:#555;margin:0 4px;"></span>
+  <div style="display:flex;align-items:center;gap:4px;background:#333;border:1px solid #555;border-radius:4px;padding:2px 6px;">
+    <i class="ti ti-device-desktop" style="font-size:13px;color:#aaa;"></i>
+    <input id="res-w" type="number" value="1920" min="100" max="9999" style="width:46px;background:none;border:none;color:#eee;font-size:12px;outline:none;text-align:center;" onchange="applyResolution()" onkeydown="event.stopPropagation();if(event.key==='Enter')applyResolution()">
+    <span style="color:#666;font-size:11px;">×</span>
+    <input id="res-h" type="number" value="1080" min="100" max="9999" style="width:46px;background:none;border:none;color:#eee;font-size:12px;outline:none;text-align:center;" onchange="applyResolution()" onkeydown="event.stopPropagation();if(event.key==='Enter')applyResolution()">
+  </div>
+  <button onclick="importFont()"><i class="ti ti-typography"></i> Import Font</button>
+  <span style="margin-left:auto;font-size:11px;color:#666;">WebMaker Pro</span>
+</div>
+
+<div id="main">
+  <div id="left-panel">
+    <div id="panel-tabs">
+      <button class="active" onclick="switchTab('elements',this)">Elements</button>
+      <button onclick="switchTab('layers',this)">Layers</button>
+      <button onclick="switchTab('pages',this)">Pages</button>
+    </div>
+    <div id="elements-panel">
+      <div class="el-category">Basic</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="div" ondragstart="startDrag(event,'div')"><i class="ti ti-square"></i>Frame</div>
+        <div class="el-item" draggable="true" data-type="button" ondragstart="startDrag(event,'button')"><i class="ti ti-hand-click"></i>Button</div>
+        <div class="el-item" draggable="true" data-type="input" ondragstart="startDrag(event,'input')"><i class="ti ti-forms"></i>TextBox</div>
+        <div class="el-item" draggable="true" data-type="text" ondragstart="startDrag(event,'text')"><i class="ti ti-letter-t"></i>Text</div>
+        <div class="el-item" draggable="true" data-type="a" ondragstart="startDrag(event,'a')"><i class="ti ti-link"></i>Hyperlink</div>
+        <div class="el-item" draggable="true" data-type="img" ondragstart="startDrag(event,'img')"><i class="ti ti-photo"></i>Image</div>
+        <div class="el-item" draggable="true" data-type="imgbutton" ondragstart="startDrag(event,'imgbutton')"><i class="ti ti-square-check"></i>ImgButton</div>
+        <div class="el-item" draggable="true" data-type="hr" ondragstart="startDrag(event,'hr')"><i class="ti ti-minus"></i>Divider</div>
+      </div>
+      <div class="el-category">Form</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="textarea" ondragstart="startDrag(event,'textarea')"><i class="ti ti-notes"></i>TextArea</div>
+        <div class="el-item" draggable="true" data-type="select" ondragstart="startDrag(event,'select')"><i class="ti ti-selector"></i>Dropdown</div>
+        <div class="el-item" draggable="true" data-type="checkbox" ondragstart="startDrag(event,'checkbox')"><i class="ti ti-checkbox"></i>Checkbox</div>
+        <div class="el-item" draggable="true" data-type="radio" ondragstart="startDrag(event,'radio')"><i class="ti ti-circle-dot"></i>Radio</div>
+        <div class="el-item" draggable="true" data-type="range" ondragstart="startDrag(event,'range')"><i class="ti ti-adjustments-horizontal"></i>Slider</div>
+        <div class="el-item" draggable="true" data-type="file" ondragstart="startDrag(event,'file')"><i class="ti ti-file-upload"></i>FileInput</div>
+        <div class="el-item" draggable="true" data-type="password" ondragstart="startDrag(event,'password')"><i class="ti ti-lock"></i>Password</div>
+        <div class="el-item" draggable="true" data-type="email" ondragstart="startDrag(event,'email')"><i class="ti ti-mail"></i>Email</div>
+        <div class="el-item" draggable="true" data-type="linkbutton" ondragstart="startDrag(event,'linkbutton')"><i class="ti ti-external-link"></i>LinkButton</div>
+      </div>
+      <div class="el-category">Layout</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="card" ondragstart="startDrag(event,'card')"><i class="ti ti-layout-cards"></i>Card</div>
+        <div class="el-item" draggable="true" data-type="navbar" ondragstart="startDrag(event,'navbar')"><i class="ti ti-layout-navbar"></i>Navbar</div>
+        <div class="el-item" draggable="true" data-type="footer" ondragstart="startDrag(event,'footer')"><i class="ti ti-layout-bottombar"></i>Footer</div>
+        <div class="el-item" draggable="true" data-type="section" ondragstart="startDrag(event,'section')"><i class="ti ti-section"></i>Section</div>
+        <div class="el-item" draggable="true" data-type="hero" ondragstart="startDrag(event,'hero')"><i class="ti ti-layout-distribute-vertical"></i>Hero</div>
+        <div class="el-item" draggable="true" data-type="columns" ondragstart="startDrag(event,'columns')"><i class="ti ti-columns-2"></i>Columns</div>
+      </div>
+      <div class="el-category">Media</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="video" ondragstart="startDrag(event,'video')"><i class="ti ti-video"></i>Video</div>
+        <div class="el-item" draggable="true" data-type="iframe" ondragstart="startDrag(event,'iframe')"><i class="ti ti-world"></i>iFrame</div>
+        <div class="el-item" draggable="true" data-type="audio" ondragstart="startDrag(event,'audio')"><i class="ti ti-volume"></i>Audio</div>
+        <div class="el-item" draggable="true" data-type="canvas2d" ondragstart="startDrag(event,'canvas2d')"><i class="ti ti-brush"></i>Canvas</div>
+      </div>
+      <div class="el-category">Typography</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="h1" ondragstart="startDrag(event,'h1')"><i class="ti ti-h-1"></i>Heading 1</div>
+        <div class="el-item" draggable="true" data-type="h2" ondragstart="startDrag(event,'h2')"><i class="ti ti-h-2"></i>Heading 2</div>
+        <div class="el-item" draggable="true" data-type="h3" ondragstart="startDrag(event,'h3')"><i class="ti ti-h-3"></i>Heading 3</div>
+        <div class="el-item" draggable="true" data-type="p" ondragstart="startDrag(event,'p')"><i class="ti ti-align-left"></i>Paragraph</div>
+        <div class="el-item" draggable="true" data-type="badge" ondragstart="startDrag(event,'badge')"><i class="ti ti-tag"></i>Badge</div>
+        <div class="el-item" draggable="true" data-type="code" ondragstart="startDrag(event,'code')"><i class="ti ti-code"></i>Code</div>
+      </div>
+      <div class="el-category">Shapes</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="rect" ondragstart="startDrag(event,'rect')"><i class="ti ti-rectangle"></i>Rectangle</div>
+        <div class="el-item" draggable="true" data-type="circle" ondragstart="startDrag(event,'circle')"><i class="ti ti-circle"></i>Circle</div>
+        <div class="el-item" draggable="true" data-type="triangle" ondragstart="startDrag(event,'triangle')"><i class="ti ti-triangle"></i>Triangle</div>
+        <div class="el-item" draggable="true" data-type="star" ondragstart="startDrag(event,'star')"><i class="ti ti-star"></i>Star</div>
+        <div class="el-item" draggable="true" data-type="line" ondragstart="startDrag(event,'line')"><i class="ti ti-line"></i>Line</div>
+        <div class="el-item" draggable="true" data-type="arrow" ondragstart="startDrag(event,'arrow')"><i class="ti ti-arrow-right"></i>Arrow</div>
+      </div>
+      <div class="el-category">Interactive</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="modal" ondragstart="startDrag(event,'modal')"><i class="ti ti-window"></i>Modal</div>
+        <div class="el-item" draggable="true" data-type="tooltip" ondragstart="startDrag(event,'tooltip')"><i class="ti ti-info-circle"></i>Tooltip</div>
+        <div class="el-item" draggable="true" data-type="tabs" ondragstart="startDrag(event,'tabs')"><i class="ti ti-layout-navbar"></i>Tabs</div>
+        <div class="el-item" draggable="true" data-type="accordion" ondragstart="startDrag(event,'accordion')"><i class="ti ti-chevrons-down"></i>Accordion</div>
+        <div class="el-item" draggable="true" data-type="progress" ondragstart="startDrag(event,'progress')"><i class="ti ti-progress"></i>Progress</div>
+        <div class="el-item" draggable="true" data-type="table" ondragstart="startDrag(event,'table')"><i class="ti ti-table"></i>Table</div>
+      </div>
+      <div class="el-category">Special</div>
+      <div class="el-grid">
+        <div class="el-item" draggable="true" data-type="counter" ondragstart="startDrag(event,'counter')"><i class="ti ti-123"></i>Counter</div>
+        <div class="el-item" draggable="true" data-type="timer" ondragstart="startDrag(event,'timer')"><i class="ti ti-clock"></i>Timer</div>
+        <div class="el-item" draggable="true" data-type="map" ondragstart="startDrag(event,'map')"><i class="ti ti-map"></i>Map</div>
+        <div class="el-item" draggable="true" data-type="chart" ondragstart="startDrag(event,'chart')"><i class="ti ti-chart-bar"></i>Chart</div>
+        <div class="el-item" draggable="true" data-type="qr" ondragstart="startDrag(event,'qr')"><i class="ti ti-qrcode"></i>QR Code</div>
+        <div class="el-item" draggable="true" data-type="marquee" ondragstart="startDrag(event,'marquee')"><i class="ti ti-marquee-2"></i>Marquee</div>
+      </div>
+    </div>
+    <div id="layers-panel"></div>
+    <div id="pages-panel" style="display:none;flex:1;overflow-y:auto;padding:8px;flex-direction:column;gap:6px;">
+      <button onclick="addPage()" style="width:100%;background:#2a4a2a;border:1px solid #4a8a4a;color:#8fca8f;padding:6px;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:6px;"><i class="ti ti-plus"></i> Add Page</button>
+      <div id="pages-list"></div>
+    </div>
+    <div id="props-panel">
+      <div class="props-empty">Select an object to edit properties</div>
+    </div>
+  </div>
+
+  <div id="canvas-wrap" tabindex="0"
+    ondragover="event.preventDefault()"
+    ondrop="onCanvasDrop(event)"
+    onmousedown="onCanvasMouseDown(event)"
+    onmousemove="onCanvasMouseMove(event)"
+    onmouseup="onCanvasMouseUp(event)"
+    onwheel="onCanvasWheel(event)"
+    oncontextmenu="showCtxMenu(event)">
+    <div id="canvas-bg"></div>
+    <div id="canvas-container">
+      <div id="canvas"></div>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <span id="st-zoom">Zoom: 100%</span>
+  <span id="st-pos">0, 0</span>
+  <span id="st-sel">No selection</span>
+  <span id="st-page" style="color:#4a9eff;">Page: Page 1</span>
+  <span id="st-res" style="margin-left:auto;">1920 × 1080</span>
+</div>
+
+<div id="ctx-menu">
+  <div onclick="ctxAction('copy')"><i class="ti ti-copy" style="margin-right:6px"></i>Copy</div>
+  <div onclick="ctxAction('paste')"><i class="ti ti-clipboard" style="margin-right:6px"></i>Paste</div>
+  <div onclick="ctxAction('duplicate')"><i class="ti ti-copy-plus" style="margin-right:6px"></i>Duplicate</div>
+  <hr>
+  <div onclick="ctxAction('bringFront')"><i class="ti ti-stack-2" style="margin-right:6px"></i>Bring to Front</div>
+  <div onclick="ctxAction('sendBack')"><i class="ti ti-stack-back" style="margin-right:6px"></i>Send to Back</div>
+  <hr>
+  <div onclick="ctxAction('lock')"><i class="ti ti-lock" style="margin-right:6px"></i>Lock / Unlock</div>
+  <div onclick="ctxAction('group')"><i class="ti ti-group" style="margin-right:6px"></i>Group</div>
+  <hr>
+  <div onclick="ctxAction('delete')" style="color:#f88"><i class="ti ti-trash" style="margin-right:6px"></i>Delete</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const container = document.getElementById('canvas-container');
+const wrap = document.getElementById('canvas-wrap');
+
+let state = {
+  objects: [],
+  selected: [],
+  resolution: {w:1920, h:1080},
+  zoom: 0.5,
+  panX: 40, panY: 40,
+  nextId: 1,
+  clipboard: null,
+  customFonts: [],
+  pages: [{id:'page1', name:'Page 1', objects:[], nextId:1}],
+  currentPageId: 'page1',
+  nextPageId: 2,
+};
+
+let drag = {active:false, type:null};
+let camDrag = {active:false, startX:0, startY:0, startPanX:0, startPanY:0};
+let objDrag = {active:false, armed:false, armId:null, armClientX:0, armClientY:0, ids:[], startX:0, startY:0, origPos:{}};
+let resizeDrag = {active:false, id:null, handle:null, startX:0, startY:0, origRect:{}};
+
+function init() {
+  canvas.style.width = state.resolution.w + 'px';
+  canvas.style.height = state.resolution.h + 'px';
+  updateTransform();
+}
+
+function updateTransform() {
+  container.style.transform = `translate(${state.panX}px,${state.panY}px) scale(${state.zoom})`;
+  document.getElementById('st-zoom').textContent = 'Zoom: ' + Math.round(state.zoom*100) + '%';
+  document.getElementById('st-res').textContent = state.resolution.w + ' × ' + state.resolution.h;
+}
+
+function screenToCanvas(x,y) {
+  const r = wrap.getBoundingClientRect();
+  return {
+    x: (x - r.left - state.panX) / state.zoom,
+    y: (y - r.top - state.panY) / state.zoom
+  };
+}
+
+// ---- Drag from panel ----
+let dragType = null;
+function startDrag(e, type) {
+  dragType = type;
+  e.dataTransfer.setData('type', type);
+}
+
+function onCanvasDrop(e) {
+  e.preventDefault();
+  const type = dragType || e.dataTransfer.getData('type');
+  if (!type) return;
+  const pos = screenToCanvas(e.clientX, e.clientY);
+  createObject(type, pos.x, pos.y);
+  dragType = null;
+}
+
+// ---- Object defaults ----
+function getDefaults(type) {
+  const base = {id:'obj'+(state.nextId++), type, x:100, y:100, w:160, h:40, rotation:0, locked:false, zIndex:state.objects.length+1};
+  const map = {
+    div:      {...base, w:200, h:150, bg:'#f0f0f0', border:'1px solid #ccc', borderRadius:4, opacity:1, label:'Frame'},
+    button:   {...base, w:100, h:32, label:'Button', bg:'', border:'', color:'', fontSize:13, fontFamily:'', text:'Button'},
+    input:    {...base, w:180, h:28, label:'TextBox', placeholder:'Type here...', bg:'', border:'', color:'', fontSize:13},
+    text:     {...base, w:200, h:30, label:'Text', text:'Text', color:'#000', fontSize:16, fontFamily:'', fontWeight:'normal', fontStyle:'normal', textDecoration:'none', textAlign:'left', textShadow:'', textStroke:''},
+    a:        {...base, w:120, h:24, label:'Hyperlink', text:'Click here', href:'https://', color:'#0066cc', fontSize:14, fontFamily:'', target:'_blank'},
+    img:      {...base, w:200, h:150, label:'Image', src:'', alt:'Image', objectFit:'cover', borderRadius:0},
+    imgbutton:{...base, w:120, h:40, label:'ImgButton', src:'', text:'Button', bg:'#4a9eff', color:'#fff', fontSize:13},
+    hr:       {...base, w:300, h:4, label:'Divider', bg:'#ccc', borderRadius:0},
+    textarea: {...base, w:200, h:80, label:'TextArea', placeholder:'Enter text...', bg:'', border:'', color:'', fontSize:13},
+    select:   {...base, w:160, h:28, label:'Dropdown', options:'Option 1\nOption 2\nOption 3', bg:'', border:'', color:'', fontSize:13},
+    checkbox: {...base, w:120, h:24, label:'Checkbox', text:'Checkbox', fontSize:13, color:'#000'},
+    radio:    {...base, w:120, h:24, label:'Radio', text:'Radio', fontSize:13, color:'#000'},
+    range:    {...base, w:200, h:28, label:'Slider', min:0, max:100, value:50},
+    file:     {...base, w:160, h:28, label:'FileInput', bg:'', border:'', color:'', fontSize:13},
+    password: {...base, w:180, h:28, label:'Password', placeholder:'Enter password...', bg:'', border:'', color:'', fontSize:13},
+    email:    {...base, w:200, h:28, label:'Email', placeholder:'Enter email...', bg:'', border:'', color:'', fontSize:13},
+    linkbutton:{...base, w:120, h:34, label:'LinkButton', text:'Go to Page', bg:'#4a9eff', color:'#fff', fontSize:13, borderRadius:4, linkTarget:'', linkTargetType:'url'},
+    card:     {...base, w:220, h:160, label:'Card', bg:'#fff', border:'1px solid #ddd', borderRadius:8, padding:16},
+    navbar:   {...base, w:Math.min(state.resolution.w,800), h:56, x:0, y:0, label:'Navbar', bg:'#222', color:'#fff', text:'Logo', fontSize:16},
+    footer:   {...base, w:Math.min(state.resolution.w,800), h:60, x:0, y:state.resolution.h-60, label:'Footer', bg:'#222', color:'#fff', text:'© 2025 My Site', fontSize:13},
+    section:  {...base, w:600, h:200, label:'Section', bg:'#f9f9f9', border:'1px solid #eee'},
+    hero:     {...base, w:700, h:300, label:'Hero', bg:'#1a1a2e', color:'#fff', text:'Hero Title', fontSize:36},
+    columns:  {...base, w:400, h:100, label:'Columns', bg:'#eee', cols:2},
+    video:    {...base, w:320, h:180, label:'Video', src:'', controls:true},
+    iframe:   {...base, w:400, h:300, label:'iFrame', src:'https://example.com'},
+    audio:    {...base, w:300, h:40, label:'Audio', src:'', controls:true},
+    canvas2d: {...base, w:200, h:150, label:'Canvas', bg:'#fff'},
+    h1:       {...base, w:300, h:50, label:'H1', text:'Heading 1', color:'#000', fontSize:32, fontFamily:'', fontWeight:'bold'},
+    h2:       {...base, w:250, h:40, label:'H2', text:'Heading 2', color:'#000', fontSize:24, fontFamily:'', fontWeight:'bold'},
+    h3:       {...base, w:200, h:35, label:'H3', text:'Heading 3', color:'#000', fontSize:20, fontFamily:'', fontWeight:'bold'},
+    p:        {...base, w:300, h:80, label:'Paragraph', text:'Paragraph text goes here. Edit this content in the properties panel.', color:'#333', fontSize:14, lineHeight:1.6},
+    badge:    {...base, w:80, h:26, label:'Badge', text:'Badge', bg:'#4a9eff', color:'#fff', fontSize:12, borderRadius:12},
+    code:     {...base, w:250, h:80, label:'Code', text:'console.log("hello");', bg:'#1e1e1e', color:'#d4d4d4', fontSize:13, fontFamily:'monospace'},
+    rect:     {...base, w:150, h:100, label:'Rectangle', bg:'#4a9eff', border:'none', borderRadius:0, opacity:1},
+    circle:   {...base, w:100, h:100, label:'Circle', bg:'#ff6b6b', borderRadius:50, border:'none'},
+    triangle: {...base, w:100, h:100, label:'Triangle', bg:'transparent', shapeType:'triangle', color:'#4a9eff'},
+    star:     {...base, w:100, h:100, label:'Star', bg:'transparent', shapeType:'star', color:'#ffd700'},
+    line:     {...base, w:200, h:4, label:'Line', bg:'#333', borderRadius:0},
+    arrow:    {...base, w:150, h:30, label:'Arrow', bg:'transparent', shapeType:'arrow', color:'#333'},
+    modal:    {...base, w:300, h:200, label:'Modal', bg:'#fff', border:'1px solid #ddd', borderRadius:8, text:'Modal Title'},
+    tooltip:  {...base, w:140, h:36, label:'Tooltip', text:'Tooltip text', bg:'#333', color:'#fff', fontSize:12, borderRadius:4},
+    tabs:     {...base, w:300, h:200, label:'Tabs', bg:'#fff', border:'1px solid #ddd', tabLabels:'Tab 1\nTab 2\nTab 3'},
+    accordion:{...base, w:280, h:120, label:'Accordion', bg:'#fff', border:'1px solid #ddd', text:'Item 1\nItem 2\nItem 3'},
+    progress: {...base, w:250, h:24, label:'Progress', value:60, bg:'#eee', color:'#4a9eff', borderRadius:12},
+    table:    {...base, w:400, h:150, label:'Table', text:'Col1,Col2,Col3\nA,B,C\nD,E,F', bg:'#fff', border:'1px solid #ddd'},
+    counter:  {...base, w:120, h:60, label:'Counter', text:'0', fontSize:36, color:'#000', bg:'#f5f5f5'},
+    timer:    {...base, w:160, h:60, label:'Timer', text:'00:00', fontSize:28, color:'#000', bg:'#f5f5f5'},
+    map:      {...base, w:400, h:300, label:'Map', src:'https://www.openstreetmap.org/export/embed.html?bbox=-0.1,51.4,-0.05,51.55&layer=mapnik'},
+    chart:    {...base, w:300, h:200, label:'Chart', text:'10,20,30,40,50', bg:'#fff'},
+    qr:       {...base, w:120, h:120, label:'QR Code', text:'https://example.com', bg:'#fff'},
+    marquee:  {...base, w:400, h:40, label:'Marquee', text:'Scrolling text here...', bg:'#fff', color:'#000', fontSize:14},
+  };
+  return map[type] || base;
+}
+
+function createObject(type, x, y) {
+  const obj = getDefaults(type);
+  obj.x = Math.round(x - obj.w/2);
+  obj.y = Math.round(y - obj.h/2);
+  state.objects.push(obj);
+  renderObject(obj);
+  selectObjects([obj.id]);
+  updateLayers();
+  return obj;
+}
+
+function renderObject(obj) {
+  let el = document.getElementById(obj.id);
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'obj';
+    el.id = obj.id;
+    el.onmousedown = (e) => onObjMouseDown(e, obj.id);
+    canvas.appendChild(el);
+  }
+  el.style.cssText = `
+    left:${obj.x}px; top:${obj.y}px; width:${obj.w}px; height:${obj.h}px;
+    transform:rotate(${obj.rotation||0}deg);
+    z-index:${obj.zIndex||1};
+    opacity:${obj.opacity!=null?obj.opacity:1};
+    position:absolute;
+  `;
+  el.innerHTML = getInnerHTML(obj);
+  if (state.selected.includes(obj.id)) {
+    el.classList.add('selected');
+    addResizeHandles(el, obj.id);
+  } else {
+    el.classList.remove('selected');
+  }
+}
+
+function getInnerHTML(obj) {
+  const t = obj.type;
+  const txt = obj.text||'';
+  const fontStyle = `font-size:${obj.fontSize||14}px;font-family:${obj.fontFamily||'inherit'};color:${obj.color||'inherit'};font-weight:${obj.fontWeight||'normal'};font-style:${obj.fontStyle||'normal'};text-decoration:${obj.textDecoration||'none'};text-align:${obj.textAlign||'left'};`;
+  const bgStyle = obj.bg ? `background:${obj.bg};` : '';
+  const borderStyle = obj.border ? `border:${obj.border};` : '';
+  const radiusStyle = obj.borderRadius!=null ? `border-radius:${obj.borderRadius}px;` : '';
+  const gradStyle = obj.gradient ? `background:${obj.gradient};` : '';
+  const strokeStyle = obj.textStroke ? `-webkit-text-stroke:${obj.textStroke};` : '';
+  const shadowStyle = obj.textShadow ? `text-shadow:${obj.textShadow};` : '';
+  const objStroke = obj.objectStroke ? `outline:${obj.objectStroke};` : '';
+  const commonStyle = bgStyle + borderStyle + radiusStyle + (gradStyle||'') + objStroke + 'width:100%;height:100%;box-sizing:border-box;';
+
+  if (t === 'button') return `<button style="${commonStyle}padding:0 12px;cursor:pointer;${fontStyle}" onclick="void(0)">${txt}</button>`;
+  if (t === 'input') return `<input type="text" placeholder="${obj.placeholder||''}" style="${commonStyle}padding:0 8px;${fontStyle}" onmousedown="event.stopPropagation()">`;
+  if (t === 'password') return `<input type="password" placeholder="${obj.placeholder||''}" style="${commonStyle}padding:0 8px;${fontStyle}" onmousedown="event.stopPropagation()">`;
+  if (t === 'email') return `<input type="email" placeholder="${obj.placeholder||''}" style="${commonStyle}padding:0 8px;${fontStyle}" onmousedown="event.stopPropagation()">`;
+  if (t === 'linkbutton') {
+    const lbl = obj.text||'Go to Page';
+    return `<button style="${commonStyle}padding:0 12px;cursor:pointer;${fontStyle}" onclick="void(0)" title="${obj.linkTargetType==='page'?'Page: '+(obj.linkTarget||'none'):'URL: '+(obj.linkTarget||'')}">${lbl} <span style="font-size:10px;opacity:.7;">↗</span></button>`;
+  }
+  if (t === 'textarea') return `<textarea placeholder="${obj.placeholder||''}" style="${commonStyle}padding:6px 8px;resize:none;${fontStyle}" onmousedown="event.stopPropagation()"></textarea>`;
+  if (t === 'select') {
+    const opts = (obj.options||'').split('\n').map(o=>`<option>${o.trim()}</option>`).join('');
+    return `<select style="${commonStyle}padding:0 6px;${fontStyle}" onmousedown="event.stopPropagation()">${opts}</select>`;
+  }
+  if (t === 'checkbox') return `<label style="display:flex;align-items:center;gap:6px;${fontStyle}"><input type="checkbox" onmousedown="event.stopPropagation()"><span>${txt}</span></label>`;
+  if (t === 'radio') return `<label style="display:flex;align-items:center;gap:6px;${fontStyle}"><input type="radio" onmousedown="event.stopPropagation()"><span>${txt}</span></label>`;
+  if (t === 'range') return `<input type="range" min="${obj.min||0}" max="${obj.max||100}" value="${obj.value||50}" style="width:100%;${fontStyle}" onmousedown="event.stopPropagation()">`;
+  if (t === 'file') return `<input type="file" style="${commonStyle}padding:2px;${fontStyle}" onmousedown="event.stopPropagation()">`;
+  if (t === 'progress') return `<div style="${bgStyle}${radiusStyle}width:100%;height:100%;overflow:hidden;"><div style="width:${obj.value||60}%;height:100%;background:${obj.color||'#4a9eff'};${radiusStyle}"></div></div>`;
+  if (t === 'img') return `<img src="${obj.src||''}" alt="${obj.alt||''}" style="width:100%;height:100%;object-fit:${obj.objectFit||'cover'};${radiusStyle}display:block;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23ddd%22/><text x=%2250%25%22 y=%2255%25%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2213%22>Image</text></svg>'">`;
+  if (t === 'a') return `<a href="${obj.href||'#'}" target="${obj.target||'_blank'}" style="${fontStyle}text-decoration:underline;display:block;" onmousedown="event.stopPropagation()" onclick="window.open('${obj.href||'#'}','${obj.target||'_blank'}')">${txt}</a>`;
+  if (t === 'hr') return `<div style="${bgStyle}width:100%;height:100%;${radiusStyle}"></div>`;
+  if (t === 'div'||t==='section'||t==='card') return `<div style="${commonStyle}padding:${obj.padding||8}px;overflow:hidden;"></div>`;
+  if (t === 'video') return `<video src="${obj.src||''}" controls="${obj.controls}" style="width:100%;height:100%;${bgStyle}"></video>`;
+  if (t === 'audio') return `<audio src="${obj.src||''}" controls="${obj.controls}" style="width:100%;${bgStyle}"></audio>`;
+  if (t === 'iframe'||t==='map') return `<iframe src="${obj.src||''}" style="width:100%;height:100%;border:none;" onmousedown="event.stopPropagation()"></iframe>`;
+  if (t === 'canvas2d') return `<canvas style="width:100%;height:100%;${bgStyle}"></canvas>`;
+  if (t === 'navbar') return `<div style="${bgStyle}width:100%;height:100%;display:flex;align-items:center;padding:0 20px;${fontStyle}font-weight:bold;">${txt}</div>`;
+  if (t === 'footer') return `<div style="${bgStyle}width:100%;height:100%;display:flex;align-items:center;justify-content:center;${fontStyle}">${txt}</div>`;
+  if (t === 'hero') return `<div style="${commonStyle}display:flex;align-items:center;justify-content:center;${fontStyle}${strokeStyle}${shadowStyle}">${txt}</div>`;
+  if (t === 'badge') return `<span style="${commonStyle}display:inline-flex;align-items:center;justify-content:center;padding:0 8px;${fontStyle}">${txt}</span>`;
+  if (t === 'code') return `<pre style="${commonStyle}padding:8px;overflow:auto;${fontStyle}white-space:pre-wrap;"><code>${txt}</code></pre>`;
+  if (t === 'tooltip') return `<div style="${commonStyle}display:flex;align-items:center;justify-content:center;padding:4px 8px;${fontStyle}">${txt}</div>`;
+  if (t === 'modal') return `<div style="${commonStyle}padding:16px;${fontStyle}"><div style="font-weight:bold;margin-bottom:8px;">${txt}</div><div style="font-size:12px;color:#666;">Modal content here</div></div>`;
+  if (t === 'marquee') return `<div style="${commonStyle}overflow:hidden;display:flex;align-items:center;"><marquee style="${fontStyle}">${txt}</marquee></div>`;
+  if (t === 'counter'||t==='timer') return `<div style="${commonStyle}display:flex;align-items:center;justify-content:center;${fontStyle}font-family:monospace;">${txt}</div>`;
+  if (t === 'columns') {
+    const cols = obj.cols||2;
+    return `<div style="${bgStyle}width:100%;height:100%;display:grid;grid-template-columns:repeat(${cols},1fr);gap:4px;">${Array.from({length:cols},(_,i)=>`<div style="background:#fff;border:1px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;">Col ${i+1}</div>`).join('')}</div>`;
+  }
+  if (t === 'tabs') {
+    const tabArr = (obj.tabLabels||'Tab 1\nTab 2').split('\n');
+    return `<div style="${commonStyle}padding:0;"><div style="display:flex;border-bottom:1px solid #ddd;">${tabArr.map((l,i)=>`<div style="padding:6px 12px;font-size:12px;cursor:pointer;${i===0?'border-bottom:2px solid #4a9eff;':''}">${l.trim()}</div>`).join('')}</div><div style="padding:8px;font-size:12px;color:#666;">Tab content</div></div>`;
+  }
+  if (t === 'accordion') {
+    const items = (obj.text||'Item 1\nItem 2').split('\n');
+    return `<div style="${commonStyle}">${items.map(i=>`<div style="border-bottom:1px solid #eee;padding:8px;font-size:12px;cursor:pointer;">${i.trim()} ▼</div>`).join('')}</div>`;
+  }
+  if (t === 'table') {
+    const rows = (obj.text||'Col1,Col2\nA,B').split('\n').map(r=>r.split(','));
+    const thead = rows[0].map(c=>`<th style="padding:4px 8px;border:1px solid #ddd;background:#f5f5f5;font-size:12px;">${c}</th>`).join('');
+    const tbody = rows.slice(1).map(r=>`<tr>${r.map(c=>`<td style="padding:4px 8px;border:1px solid #ddd;font-size:12px;">${c}</td>`).join('')}</tr>`).join('');
+    return `<div style="${commonStyle}overflow:auto;"><table style="border-collapse:collapse;width:100%;"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
+  }
+  if (t === 'imgbutton') return `<button style="${commonStyle}display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:4px 10px;${fontStyle}" onclick="void(0)">${obj.src?`<img src="${obj.src}" style="height:20px;">`:''}${txt}</button>`;
+  if (t === 'rect') return `<div style="${commonStyle}${gradStyle}"></div>`;
+  if (t === 'circle') return `<div style="${commonStyle}${gradStyle}border-radius:${obj.borderRadius||50}%;"></div>`;
+  if (t === 'line') return `<div style="${bgStyle}width:100%;height:100%;${radiusStyle}"></div>`;
+  if (t === 'triangle') return `<div style="width:0;height:0;border-left:${obj.w/2}px solid transparent;border-right:${obj.w/2}px solid transparent;border-bottom:${obj.h}px solid ${obj.color||'#4a9eff'};"></div>`;
+  if (t === 'star') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Math.min(obj.w,obj.h)*0.85}px;color:${obj.color||'#ffd700'};">★</div>`;
+  if (t === 'arrow') return `<div style="width:100%;height:100%;display:flex;align-items:center;${fontStyle}"><div style="flex:1;height:2px;background:${obj.color||'#333'};"></div><div style="width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:14px solid ${obj.color||'#333'};"></div></div>`;
+  if (t === 'chart') {
+    const vals = (obj.text||'10,20,30,40,50').split(',').map(Number);
+    const max = Math.max(...vals);
+    const bars = vals.map(v=>`<div style="flex:1;background:#4a9eff;height:${(v/max)*80}%;align-self:flex-end;margin:0 1px;"></div>`).join('');
+    return `<div style="${bgStyle}width:100%;height:100%;padding:8px;display:flex;align-items:flex-end;${borderStyle}${radiusStyle}">${bars}</div>`;
+  }
+  if (t === 'qr') return `<div style="${bgStyle}width:100%;height:100%;display:flex;align-items:center;justify-content:center;${borderStyle}${radiusStyle}"><div style="background:${obj.bg||'#fff'};padding:4px;"><img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(obj.text||'https://example.com')}&size=100x100" style="display:block;"></div></div>`;
+  // default text
+  return `<div style="${commonStyle}${gradStyle}${strokeStyle}${shadowStyle}display:flex;align-items:center;padding:4px 8px;${fontStyle}overflow:hidden;">${txt}</div>`;
+}
+
+function addResizeHandles(el, id) {
+  const handles = ['nw','n','ne','e','se','s','sw','w'];
+  handles.forEach(h => {
+    const d = document.createElement('div');
+    d.className = `resize-handle rh-${h}`;
+    d.onmousedown = (e) => { e.stopPropagation(); startResize(e, id, h); };
+    el.appendChild(d);
+  });
+}
+
+function removeResizeHandles(el) {
+  el.querySelectorAll('.resize-handle').forEach(h=>h.remove());
+}
+
+// ---- Selection ----
+function selectObjects(ids) {
+  state.selected.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('selected'); removeResizeHandles(el); }
+  });
+  state.selected = ids;
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('selected'); addResizeHandles(el, id); }
+  });
+  updatePropsPanel();
+  document.getElementById('st-sel').textContent = ids.length ? ids.length + ' selected' : 'No selection';
+}
+
+function deselectAll() {
+  selectObjects([]);
+}
+
+// ---- Mouse events ----
+// lastClick tracks previous mousedown for double-click detection
+let lastClick = {}; // {id, time}
+
+function onObjMouseDown(e, id) {
+  e.stopPropagation();
+  e.preventDefault();
+  wrap.focus();
+  if (e.button === 2) return;
+  const obj = state.objects.find(o=>o.id===id);
+  if (obj && obj.locked) return;
+
+  const now = Date.now();
+  const isDouble = (lastClick.id === id && (now - lastClick.time) < 350);
+  lastClick = {id, time: now};
+
+  if (isDouble) {
+    // double-click: select (ignore shift, just select this one cleanly)
+    if (e.shiftKey) {
+      const sel = state.selected.includes(id)
+        ? state.selected.filter(s => s !== id)
+        : [...state.selected, id];
+      selectObjects(sel);
+    } else {
+      selectObjects([id]);
+    }
+    return;
+  }
+
+  // single click: shift = toggle add/remove from selection; no shift = select only this
+  if (e.shiftKey) {
+    const sel = state.selected.includes(id)
+      ? state.selected.filter(s => s !== id)
+      : [...state.selected, id];
+    selectObjects(sel);
+  } else {
+    if (!state.selected.includes(id)) {
+      selectObjects([id]);
+    }
+    // if already selected, keep current selection so multi-select can be dragged
+  }
+
+  // arm drag for all currently selected objects
+  const dragIds = state.selected.length > 0 ? [...state.selected] : [id];
+  objDrag.armed = true;
+  objDrag.armClientX = e.clientX;
+  objDrag.armClientY = e.clientY;
+  objDrag.ids = dragIds;
+  objDrag.origPos = {};
+  dragIds.forEach(sid => {
+    const o = state.objects.find(ob => ob.id === sid);
+    if (o) objDrag.origPos[sid] = {x: o.x, y: o.y};
+  });
+}
+
+function startObjMove(ids, startClientX, startClientY) {
+  objDrag.active = true;
+  objDrag.armed = false;
+  objDrag.ids = ids;
+  objDrag.startX = startClientX;
+  objDrag.startY = startClientY;
+  // origPos already set when arming
+}
+
+function startResize(e, id, handle) {
+  const obj = state.objects.find(o=>o.id===id);
+  if (!obj) return;
+  resizeDrag.active = true;
+  resizeDrag.id = id;
+  resizeDrag.handle = handle;
+  resizeDrag.startX = e.clientX;
+  resizeDrag.startY = e.clientY;
+  resizeDrag.origRect = {x:obj.x, y:obj.y, w:obj.w, h:obj.h};
+}
+
+function onCanvasMouseDown(e) {
+  wrap.focus();
+  const onObj = !!e.target.closest('.obj');
+  if (e.button === 0 && !onObj) {
+    deselectAll();
+    camDrag.active = true;
+    camDrag.startX = e.clientX;
+    camDrag.startY = e.clientY;
+    camDrag.startPanX = state.panX;
+    camDrag.startPanY = state.panY;
+  }
+  if (e.button === 1) {
+    e.preventDefault();
+    camDrag.active = true;
+    camDrag.startX = e.clientX;
+    camDrag.startY = e.clientY;
+    camDrag.startPanX = state.panX;
+    camDrag.startPanY = state.panY;
+  }
+}
+
+function onCanvasMouseMove(e) {
+  const pos = screenToCanvas(e.clientX, e.clientY);
+  document.getElementById('st-pos').textContent = Math.round(pos.x) + ', ' + Math.round(pos.y);
+
+  if (objDrag.armed && !objDrag.active) {
+    const adx = e.clientX - objDrag.armClientX;
+    const ady = e.clientY - objDrag.armClientY;
+    if (Math.sqrt(adx*adx + ady*ady) > 4) { startObjMove(objDrag.ids, objDrag.armClientX, objDrag.armClientY); }
+  }
+
+  if (camDrag.active) {
+    state.panX = camDrag.startPanX + (e.clientX - camDrag.startX);
+    state.panY = camDrag.startPanY + (e.clientY - camDrag.startY);
+    updateTransform();
+    return;
+  }
+  if (resizeDrag.active) {
+    const dx = (e.clientX - resizeDrag.startX) / state.zoom;
+    const dy = (e.clientY - resizeDrag.startY) / state.zoom;
+    const orig = resizeDrag.origRect;
+    const obj = state.objects.find(o=>o.id===resizeDrag.id);
+    if (!obj) return;
+    const h = resizeDrag.handle;
+    let {x,y,w,wh} = orig;
+    let nw = orig.w, nh = orig.h, nx = orig.x, ny = orig.y;
+    if (h.includes('e')) nw = Math.max(20, orig.w + dx);
+    if (h.includes('s')) nh = Math.max(10, orig.h + dy);
+    if (h.includes('w')) { nw = Math.max(20, orig.w - dx); nx = orig.x + orig.w - nw; }
+    if (h.includes('n')) { nh = Math.max(10, orig.h - dy); ny = orig.y + orig.h - nh; }
+    obj.x = Math.round(nx); obj.y = Math.round(ny);
+    obj.w = Math.round(nw); obj.h = Math.round(nh);
+    renderObject(obj);
+    updatePropsPanel();
+    return;
+  }
+  if (objDrag.active) {
+    const dx = (e.clientX - objDrag.startX) / state.zoom;
+    const dy = (e.clientY - objDrag.startY) / state.zoom;
+    objDrag.ids.forEach(id => {
+      const obj = state.objects.find(o=>o.id===id);
+      if (obj && objDrag.origPos[id]) {
+        obj.x = Math.round(objDrag.origPos[id].x + dx);
+        obj.y = Math.round(objDrag.origPos[id].y + dy);
+        const el = document.getElementById(id);
+        if (el) { el.style.left = obj.x+'px'; el.style.top = obj.y+'px'; }
+      }
+    });
+    updatePropsPanel();
+  }
+}
+
+function onCanvasMouseUp(e) {
+  camDrag.active = false;
+  objDrag.active = false;
+  objDrag.armed = false;
+  resizeDrag.active = false;
+  wrap.style.cursor = '';
+}
+
+function onCanvasWheel(e) {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  const r = wrap.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  state.panX = mx - (mx - state.panX) * factor;
+  state.panY = my - (my - state.panY) * factor;
+  state.zoom = Math.min(4, Math.max(0.1, state.zoom * factor));
+  updateTransform();
+}
+
+// ---- Keyboard ----
+// Listen on both wrap and document so Backspace always fires
+function handleKey(e) {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    e.preventDefault();
+    deleteSelected();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'c') { ctxAction('copy'); e.preventDefault(); }
+    if (e.key === 'v') { ctxAction('paste'); e.preventDefault(); }
+    if (e.key === 'd') { ctxAction('duplicate'); e.preventDefault(); }
+    if (e.key === 'z') { e.preventDefault(); }
+    if (e.key === 'a') { e.preventDefault(); selectObjects(state.objects.map(o => o.id)); }
+  }
+  if (e.key === 'Escape') deselectAll();
+  const step = e.shiftKey ? 10 : 1;
+  if (e.key === 'ArrowLeft')  nudge(-step, 0, e);
+  if (e.key === 'ArrowRight') nudge(step, 0, e);
+  if (e.key === 'ArrowUp')    nudge(0, -step, e);
+  if (e.key === 'ArrowDown')  nudge(0, step, e);
+}
+document.addEventListener('keydown', handleKey);
+
+function nudge(dx, dy, e) {
+  if (!state.selected.length) return;
+  e.preventDefault();
+  state.selected.forEach(id => {
+    const obj = state.objects.find(o=>o.id===id);
+    if (obj) { obj.x+=dx; obj.y+=dy; renderObject(obj); }
+  });
+  updatePropsPanel();
+}
+
+function deleteSelected() {
+  state.selected.forEach(id => {
+    state.objects = state.objects.filter(o=>o.id!==id);
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+  state.selected = [];
+  updatePropsPanel();
+  updateLayers();
+  document.getElementById('st-sel').textContent = 'No selection';
+}
+
+// ---- Context Menu ----
+function showCtxMenu(e) {
+  e.preventDefault();
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  m.style.left = e.clientX + 'px';
+  m.style.top = e.clientY + 'px';
+}
+document.addEventListener('click', () => { document.getElementById('ctx-menu').style.display='none'; });
+document.addEventListener('contextmenu', (e) => {
+  if (!e.target.closest('#canvas-wrap')) document.getElementById('ctx-menu').style.display='none';
+});
+
+function ctxAction(action) {
+  document.getElementById('ctx-menu').style.display='none';
+  if (action==='delete') { deleteSelected(); return; }
+  if (action==='copy') {
+    state.clipboard = state.selected.map(id=>JSON.parse(JSON.stringify(state.objects.find(o=>o.id===id)))).filter(Boolean);
+  }
+  if (action==='paste' && state.clipboard) {
+    const newIds = [];
+    state.clipboard.forEach(obj => {
+      const newObj = {...obj, id:'obj'+(state.nextId++), x:obj.x+20, y:obj.y+20, zIndex:state.objects.length+1};
+      state.objects.push(newObj);
+      renderObject(newObj);
+      newIds.push(newObj.id);
+    });
+    selectObjects(newIds);
+    updateLayers();
+  }
+  if (action==='duplicate') {
+    ctxAction('copy');
+    ctxAction('paste');
+  }
+  if (action==='bringFront') {
+    state.selected.forEach(id => {
+      const obj = state.objects.find(o=>o.id===id);
+      if (obj) { obj.zIndex = Math.max(...state.objects.map(o=>o.zIndex||0))+1; renderObject(obj); }
+    });
+  }
+  if (action==='sendBack') {
+    state.selected.forEach(id => {
+      const obj = state.objects.find(o=>o.id===id);
+      if (obj) { obj.zIndex = Math.max(0, Math.min(...state.objects.map(o=>o.zIndex||0))-1); renderObject(obj); }
+    });
+  }
+  if (action==='lock') {
+    state.selected.forEach(id => {
+      const obj = state.objects.find(o=>o.id===id);
+      if (obj) obj.locked = !obj.locked;
+    });
+  }
+}
+
+// ---- Properties Panel ----
+function updatePropsPanel() {
+  const panel = document.getElementById('props-panel');
+  if (!state.selected.length) {
+    panel.innerHTML = '<div class="props-empty">Select an object to edit properties</div>';
+    return;
+  }
+  const id = state.selected[0];
+  const obj = state.objects.find(o=>o.id===id);
+  if (!obj) return;
+
+  const fontList = ['', 'Arial', 'Georgia', 'Verdana', 'Times New Roman', 'Courier New', 'monospace', 'serif', 'sans-serif', ...state.customFonts];
+  const fontOpts = fontList.map(f=>`<option value="${f}" ${obj.fontFamily===f?'selected':''}>${f||'Default'}</option>`).join('');
+  const fitOpts = ['cover','contain','fill','none'].map(f=>`<option value="${f}" ${obj.objectFit===f?'selected':''}>${f}</option>`).join('');
+  const targetOpts = ['_blank','_self','_parent','_top'].map(t=>`<option value="${t}" ${obj.target===t?'selected':''}>${t}</option>`).join('');
+  const weightOpts = ['normal','bold','100','200','300','400','500','600','700','800','900'].map(w=>`<option value="${w}" ${obj.fontWeight===w?'selected':''}>${w}</option>`).join('');
+  const alignOpts = ['left','center','right','justify'].map(a=>`<option value="${a}" ${obj.textAlign===a?'selected':''}>${a}</option>`).join('');
+  const decorOpts = ['none','underline','line-through','overline'].map(d=>`<option value="${d}" ${obj.textDecoration===d?'selected':''}>${d}</option>`).join('');
+
+  panel.innerHTML = `
+    <div class="prop-section">Position & Size</div>
+    <div class="prop-label">X / Y</div>
+    <div class="prop-row">
+      <input type="number" value="${obj.x}" onchange="setProp('${id}','x',+this.value)" style="width:60px">
+      <input type="number" value="${obj.y}" onchange="setProp('${id}','y',+this.value)" style="width:60px">
+    </div>
+    <div class="prop-label">W / H</div>
+    <div class="prop-row">
+      <input type="number" value="${obj.w}" onchange="setProp('${id}','w',+this.value)" style="width:60px">
+      <input type="number" value="${obj.h}" onchange="setProp('${id}','h',+this.value)" style="width:60px">
+    </div>
+    <div class="prop-label">Rotation (deg)</div>
+    <div class="prop-row"><input type="number" value="${obj.rotation||0}" onchange="setProp('${id}','rotation',+this.value)"></div>
+    <div class="prop-label">Opacity (0-1)</div>
+    <div class="prop-row"><input type="number" min="0" max="1" step="0.05" value="${obj.opacity!=null?obj.opacity:1}" onchange="setProp('${id}','opacity',+this.value)"></div>
+    <div class="prop-label">Z-Index</div>
+    <div class="prop-row"><input type="number" value="${obj.zIndex||1}" onchange="setProp('${id}','zIndex',+this.value)"></div>
+
+    <div class="prop-section">Background</div>
+    <div class="prop-label">Background Color</div>
+    <div class="prop-row"><input type="color" value="${toHex(obj.bg)||'#ffffff'}" onchange="setProp('${id}','bg',this.value)"><input type="text" value="${obj.bg||''}" onchange="setProp('${id}','bg',this.value)" placeholder="color / transparent"></div>
+    <div class="prop-label">Gradient CSS</div>
+    <div class="prop-row"><input type="text" value="${obj.gradient||''}" onchange="setProp('${id}','gradient',this.value)" placeholder="linear-gradient(...)"></div>
+
+    <div class="prop-section">Border & Corners</div>
+    <div class="prop-label">Border</div>
+    <div class="prop-row"><input type="text" value="${obj.border||''}" onchange="setProp('${id}','border',this.value)" placeholder="1px solid #ccc"></div>
+    <div class="prop-label">Border Radius (px)</div>
+    <div class="prop-row"><input type="number" value="${obj.borderRadius||0}" onchange="setProp('${id}','borderRadius',+this.value)"></div>
+    <div class="prop-label">Outline/Stroke</div>
+    <div class="prop-row"><input type="text" value="${obj.objectStroke||''}" onchange="setProp('${id}','objectStroke',this.value)" placeholder="2px solid red"></div>
+
+    ${(obj.text!=null||obj.type==='text'||obj.type==='h1'||obj.type==='h2'||obj.type==='h3'||obj.type==='p'||obj.type==='button'||obj.type==='badge'||obj.type==='code'||obj.type==='a')?`
+    <div class="prop-section">Text</div>
+    <div class="prop-label">Content</div>
+    <div class="prop-row"><textarea style="width:100%;height:60px;background:#333;border:1px solid #555;color:#eee;padding:4px;font-size:11px;border-radius:3px;" onchange="setProp('${id}','text',this.value)" oninput="setProp('${id}','text',this.value)">${obj.text||''}</textarea></div>
+    <div class="prop-label">Color</div>
+    <div class="prop-row"><input type="color" value="${toHex(obj.color)||'#000000'}" onchange="setProp('${id}','color',this.value)"><input type="text" value="${obj.color||''}" onchange="setProp('${id}','color',this.value)"></div>
+    <div class="prop-label">Font Size (px)</div>
+    <div class="prop-row"><input type="number" value="${obj.fontSize||14}" onchange="setProp('${id}','fontSize',+this.value)"></div>
+    <div class="prop-label">Font Family</div>
+    <div class="prop-row"><select onchange="setProp('${id}','fontFamily',this.value)">${fontOpts}</select></div>
+    <div class="prop-label">Font Weight</div>
+    <div class="prop-row"><select onchange="setProp('${id}','fontWeight',this.value)">${weightOpts}</select></div>
+    <div class="prop-label">Text Align</div>
+    <div class="prop-row"><select onchange="setProp('${id}','textAlign',this.value)">${alignOpts}</select></div>
+    <div class="prop-label">Text Decoration</div>
+    <div class="prop-row"><select onchange="setProp('${id}','textDecoration',this.value)">${decorOpts}</select></div>
+    <div class="prop-label">Text Shadow</div>
+    <div class="prop-row"><input type="text" value="${obj.textShadow||''}" onchange="setProp('${id}','textShadow',this.value)" placeholder="2px 2px 4px rgba(0,0,0,.5)"></div>
+    <div class="prop-label">Text Stroke</div>
+    <div class="prop-row"><input type="text" value="${obj.textStroke||''}" onchange="setProp('${id}','textStroke',this.value)" placeholder="1px #000"></div>
+    `:''}
+
+    ${obj.type==='a'?`
+    <div class="prop-section">Hyperlink</div>
+    <div class="prop-label">URL</div>
+    <div class="prop-row"><input type="text" value="${obj.href||''}" onchange="setProp('${id}','href',this.value)" placeholder="https://..."></div>
+    <div class="prop-label">Target</div>
+    <div class="prop-row"><select onchange="setProp('${id}','target',this.value)">${targetOpts}</select></div>
+    `:''}
+
+    ${obj.type==='password'||obj.type==='email'?`
+    <div class="prop-section">${obj.type==='password'?'Password':'Email'} Field</div>
+    <div class="prop-label">Placeholder</div>
+    <div class="prop-row"><input type="text" value="${obj.placeholder||''}" onchange="setProp('${id}','placeholder',this.value)" placeholder="Placeholder text..."></div>
+    `:''}
+
+    ${obj.type==='linkbutton'?`
+    <div class="prop-section">Link Button</div>
+    <div class="prop-label">Button Label</div>
+    <div class="prop-row"><input type="text" value="${obj.text||'Go to Page'}" onchange="setProp('${id}','text',this.value)"></div>
+    <div class="prop-label">Link Type</div>
+    <div class="prop-row">
+      <select onchange="setProp('${id}','linkTargetType',this.value)">
+        <option value="url" ${obj.linkTargetType==='url'?'selected':''}>External URL</option>
+        <option value="page" ${obj.linkTargetType==='page'?'selected':''}>Local Page</option>
+      </select>
+    </div>
+    ${obj.linkTargetType==='page'?`
+    <div class="prop-label">Target Page</div>
+    <div class="prop-row">
+      <select onchange="setProp('${id}','linkTarget',this.value)">
+        <option value="">-- Select page --</option>
+        ${state.pages.filter(p=>p.id!==state.currentPageId).map(p=>`<option value="${p.id}" ${obj.linkTarget===p.id?'selected':''}>${p.name}</option>`).join('')}
+      </select>
+    </div>
+    `:`
+    <div class="prop-label">URL</div>
+    <div class="prop-row"><input type="text" value="${obj.linkTarget||''}" onchange="setProp('${id}','linkTarget',this.value)" placeholder="https://..."></div>
+    `}
+    `:''}
+
+    ${obj.type==='img'||obj.type==='imgbutton'?`
+    <div class="prop-section">Image</div>
+    <div class="prop-label">Image URL / Base64</div>
+    <div class="prop-row"><input type="text" value="${obj.src||''}" onchange="setProp('${id}','src',this.value)" placeholder="https://... or import below"></div>
+    <div class="prop-label">Import Image File</div>
+    <div class="prop-row"><input type="file" accept="image/*" onchange="importImg(event,'${id}')" style="background:#333;border:1px solid #555;color:#eee;font-size:10px;width:100%;"></div>
+    <div class="prop-label">Object Fit</div>
+    <div class="prop-row"><select onchange="setProp('${id}','objectFit',this.value)">${fitOpts}</select></div>
+    <div class="prop-label">Alt Text</div>
+    <div class="prop-row"><input type="text" value="${obj.alt||''}" onchange="setProp('${id}','alt',this.value)"></div>
+    `:''}
+
+    ${obj.type==='iframe'||obj.type==='map'||obj.type==='video'||obj.type==='audio'?`
+    <div class="prop-section">Source</div>
+    <div class="prop-label">URL / Src</div>
+    <div class="prop-row"><input type="text" value="${obj.src||''}" onchange="setProp('${id}','src',this.value)" placeholder="https://..."></div>
+    `:''}
+
+    ${obj.type==='select'?`
+    <div class="prop-section">Dropdown</div>
+    <div class="prop-label">Options (one per line)</div>
+    <div class="prop-row"><textarea style="width:100%;height:60px;background:#333;border:1px solid #555;color:#eee;padding:4px;font-size:11px;border-radius:3px;" onchange="setProp('${id}','options',this.value)">${obj.options||''}</textarea></div>
+    `:''}
+
+    ${obj.type==='range'?`
+    <div class="prop-section">Slider</div>
+    <div class="prop-label">Min / Max / Value</div>
+    <div class="prop-row">
+      <input type="number" value="${obj.min||0}" onchange="setProp('${id}','min',+this.value)" style="width:55px">
+      <input type="number" value="${obj.max||100}" onchange="setProp('${id}','max',+this.value)" style="width:55px">
+      <input type="number" value="${obj.value||50}" onchange="setProp('${id}','value',+this.value)" style="width:55px">
+    </div>
+    `:''}
+
+    ${obj.type==='progress'?`
+    <div class="prop-label">Progress Value (%)</div>
+    <div class="prop-row"><input type="number" min="0" max="100" value="${obj.value||60}" onchange="setProp('${id}','value',+this.value)"></div>
+    `:''}
+
+    ${obj.type==='chart'?`
+    <div class="prop-section">Chart</div>
+    <div class="prop-label">Values (comma separated)</div>
+    <div class="prop-row"><input type="text" value="${obj.text||''}" onchange="setProp('${id}','text',this.value)"></div>
+    `:''}
+
+    ${obj.type==='qr'?`
+    <div class="prop-section">QR Code</div>
+    <div class="prop-label">QR Data/URL</div>
+    <div class="prop-row"><input type="text" value="${obj.text||''}" onchange="setProp('${id}','text',this.value)"></div>
+    `:''}
+
+    ${obj.type==='tabs'?`
+    <div class="prop-section">Tabs</div>
+    <div class="prop-label">Tab Labels (one per line)</div>
+    <div class="prop-row"><textarea style="width:100%;height:60px;background:#333;border:1px solid #555;color:#eee;padding:4px;font-size:11px;border-radius:3px;" onchange="setProp('${id}','tabLabels',this.value)">${obj.tabLabels||''}</textarea></div>
+    `:''}
+
+    ${obj.type==='table'?`
+    <div class="prop-section">Table</div>
+    <div class="prop-label">CSV Data (rows with commas)</div>
+    <div class="prop-row"><textarea style="width:100%;height:80px;background:#333;border:1px solid #555;color:#eee;padding:4px;font-size:11px;border-radius:3px;" onchange="setProp('${id}','text',this.value)">${obj.text||''}</textarea></div>
+    `:''}
+
+    ${obj.type==='columns'?`
+    <div class="prop-section">Columns</div>
+    <div class="prop-label">Number of Columns</div>
+    <div class="prop-row"><input type="number" min="1" max="12" value="${obj.cols||2}" onchange="setProp('${id}','cols',+this.value)"></div>
+    `:''}
+
+    <div class="prop-section">Line Height</div>
+    <div class="prop-row"><input type="number" step="0.1" value="${obj.lineHeight||1.4}" onchange="setProp('${id}','lineHeight',+this.value)"></div>
+
+    <div style="margin-top:8px;">
+      <button onclick="deleteSelected()" style="width:100%;background:#5a1a1a;border:1px solid #8a2a2a;color:#faa;padding:5px;border-radius:3px;cursor:pointer;font-size:11px;">Delete Object</button>
+    </div>
+  `;
+}
+
+function toHex(color) {
+  if (!color) return '';
+  if (color.startsWith('#') && (color.length===4||color.length===7)) return color;
+  return '';
+}
+
+function setProp(id, key, val) {
+  const obj = state.objects.find(o=>o.id===id);
+  if (!obj) return;
+  obj[key] = val;
+  renderObject(obj);
+}
+
+function importImg(e, id) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { setProp(id, 'src', ev.target.result); };
+  reader.readAsDataURL(file);
+}
+
+// ---- Layers ----
+function updateLayers() {
+  const panel = document.getElementById('layers-panel');
+  panel.innerHTML = '';
+  [...state.objects].reverse().forEach(obj => {
+    const el = document.createElement('div');
+    el.className = 'layer-item' + (state.selected.includes(obj.id)?' active':'');
+    el.innerHTML = `<i class="ti ti-${getTypeIcon(obj.type)}"></i><span style="flex:1;">${obj.label||obj.type}</span>${obj.locked?'<i class="ti ti-lock" style="font-size:11px;color:#f88;"></i>':''}`;
+    el.onclick = () => { selectObjects([obj.id]); wrap.focus(); };
+    panel.appendChild(el);
+  });
+}
+
+function getTypeIcon(t) {
+  const m={div:'square',button:'hand-click',input:'forms',text:'letter-t',a:'link',img:'photo',hr:'minus',textarea:'notes',select:'selector',checkbox:'checkbox',radio:'circle-dot',range:'adjustments-horizontal',h1:'h-1',h2:'h-2',h3:'h-3',p:'align-left',badge:'tag',code:'code',rect:'rectangle',circle:'circle',line:'minus',triangle:'triangle',star:'star',arrow:'arrow-right',card:'layout-cards',navbar:'layout-navbar',footer:'layout-bottombar',section:'section',hero:'layout-distribute-vertical',columns:'columns-2',video:'video',iframe:'world',audio:'volume',progress:'progress',table:'table',chart:'chart-bar',modal:'window',tooltip:'info-circle',tabs:'layout-navbar',accordion:'chevrons-down',counter:'123',timer:'clock',map:'map',qr:'qrcode',marquee:'marquee-2',imgbutton:'square-check',password:'lock',email:'mail',linkbutton:'external-link'};
+  return m[t]||'square';
+}
+
+// ---- Tab switch ----
+function switchTab(tab, btn) {
+  document.querySelectorAll('#panel-tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('elements-panel').style.display = tab==='elements'?'block':'none';
+  document.getElementById('layers-panel').style.display = tab==='layers'?'block':'none';
+  document.getElementById('pages-panel').style.display = tab==='pages'?'flex':'none';
+  if (tab==='layers') updateLayers();
+  if (tab==='pages') updatePagesPanel();
+}
+
+// ---- Toolbar actions ----
+function newProject() {
+  if (!confirm('Create new project? Unsaved changes will be lost.')) return;
+  state.objects.forEach(o => { const el=document.getElementById(o.id); if(el) el.remove(); });
+  state.objects = [];
+  state.selected = [];
+  state.nextId = 1;
+  state.pages = [{id:'page1', name:'Page 1', objects:[], nextId:1}];
+  state.currentPageId = 'page1';
+  state.nextPageId = 2;
+  updatePropsPanel();
+  updateLayers();
+  updatePagesPanel();
+  document.getElementById('st-page').textContent = 'Page: Page 1';
+}
+
+function setResolution() {
+  // remove any existing modal
+  const old = document.getElementById('res-modal');
+  if (old) old.remove();
+
+  const presets = [
+    {label:'1920 × 1080 — Full HD',       w:1920, h:1080},
+    {label:'1280 × 720 — HD',              w:1280, h:720},
+    {label:'1366 × 768 — Laptop',          w:1366, h:768},
+    {label:'2560 × 1440 — 2K QHD',         w:2560, h:1440},
+    {label:'3840 × 2160 — 4K UHD',         w:3840, h:2160},
+    {label:'375 × 812 — iPhone (portrait)', w:375,  h:812},
+    {label:'414 × 896 — iPhone Plus',       w:414,  h:896},
+    {label:'768 × 1024 — iPad',             w:768,  h:1024},
+    {label:'1024 × 768 — iPad landscape',   w:1024, h:768},
+    {label:'800 × 600 — Old Monitor',       w:800,  h:600},
+    {label:'2048 × 1152 — Social Banner',   w:2048, h:1152},
+    {label:'1200 × 630 — OG Image',         w:1200, h:630},
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.id = 'res-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;';
+
+  const presetItems = presets.map((p,i) =>
+    `<div class="rp-item" data-w="${p.w}" data-h="${p.h}" style="padding:7px 12px;cursor:pointer;font-size:12px;color:#ccc;border-radius:4px;display:flex;justify-content:space-between;gap:12px;">
+      <span>${p.label}</span>
+      <span style="color:#666;font-size:11px;">${p.w}×${p.h}</span>
+    </div>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div style="background:#252525;border:1px solid #555;border-radius:8px;width:420px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.7);">
+      <div style="padding:14px 16px;border-bottom:1px solid #444;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:14px;font-weight:600;color:#fff;">Canvas Resolution</span>
+        <button onclick="document.getElementById('res-modal').remove()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div style="padding:14px 16px;border-bottom:1px solid #3a3a3a;">
+        <div style="font-size:11px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Custom Size</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input id="modal-res-w" type="number" min="1" max="9999" value="${state.resolution.w}" style="width:90px;background:#333;border:1px solid #555;color:#fff;padding:6px 8px;font-size:13px;border-radius:4px;">
+          <span style="color:#666;font-size:16px;">×</span>
+          <input id="modal-res-h" type="number" min="1" max="9999" value="${state.resolution.h}" style="width:90px;background:#333;border:1px solid #555;color:#fff;padding:6px 8px;font-size:13px;border-radius:4px;">
+          <span style="color:#888;font-size:12px;">px</span>
+          <button onclick="applyResolution(+document.getElementById('modal-res-w').value,+document.getElementById('modal-res-h').value)" style="margin-left:auto;background:#4a9eff;border:none;color:#fff;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;">Apply</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button onclick="(function(){var a=document.getElementById('modal-res-w'),b=document.getElementById('modal-res-h'),t=a.value;a.value=b.value;b.value=t;})()" style="background:#333;border:1px solid #555;color:#ccc;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">⇄ Swap W/H</button>
+        </div>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #3a3a3a;">
+        <div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Presets</div>
+        <div style="overflow-y:auto;max-height:280px;">${presetItems}</div>
+      </div>
+      <div style="padding:10px 16px;font-size:11px;color:#666;">Current: <span style="color:#aaa;">${state.resolution.w} × ${state.resolution.h} px</span></div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // preset click
+  overlay.querySelectorAll('.rp-item').forEach(item => {
+    item.addEventListener('mouseenter', () => item.style.background='#333');
+    item.addEventListener('mouseleave', () => item.style.background='');
+    item.addEventListener('click', () => {
+      applyResolution(+item.dataset.w, +item.dataset.h);
+    });
+  });
+
+  // close on backdrop click
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // focus W input
+  setTimeout(() => document.getElementById('modal-res-w')?.focus(), 50);
+}
+
+function applyResolution(w, h) {
+  if (w == null) w = +document.getElementById('res-w').value;
+  if (h == null) h = +document.getElementById('res-h').value;
+  if (!w || !h || w < 1 || h < 1) return;
+  state.resolution.w = w;
+  state.resolution.h = h;
+  canvas.style.width  = w + 'px';
+  canvas.style.height = h + 'px';
+  document.getElementById('res-w').value = w;
+  document.getElementById('res-h').value = h;
+  updateTransform();
+  const old = document.getElementById('res-modal');
+  if (old) old.remove();
+}
+
+function importFont() {
+  const url = prompt('Font URL (Google Fonts @import or .ttf URL):');
+  if (!url) return;
+  const name = prompt('Font family name to use:');
+  if (!name) return;
+  if (url.includes('fonts.googleapis') || url.includes('@import')) {
+    const link = document.createElement('link');
+    link.rel='stylesheet'; link.href=url;
+    document.head.appendChild(link);
+  } else {
+    const style = document.createElement('style');
+    style.textContent = `@font-face{font-family:'${name}';src:url('${url}');}`;
+    document.head.appendChild(style);
+  }
+  if (!state.customFonts.includes(name)) state.customFonts.push(name);
+  alert('Font "'+name+'" imported! Select an object to use it.');
+}
+
+// ---- Pages System ----
+function getCurrentPage() {
+  return state.pages.find(p=>p.id===state.currentPageId);
+}
+
+function saveCurrentPage() {
+  const page = getCurrentPage();
+  if (!page) return;
+  page.objects = JSON.parse(JSON.stringify(state.objects));
+  page.nextId = state.nextId;
+}
+
+function loadPage(pageId) {
+  // Save current page first
+  saveCurrentPage();
+  // Clear canvas
+  state.objects.forEach(o=>{const el=document.getElementById(o.id);if(el)el.remove();});
+  // Switch page
+  state.currentPageId = pageId;
+  const page = getCurrentPage();
+  if (!page) return;
+  state.objects = JSON.parse(JSON.stringify(page.objects));
+  state.nextId = page.nextId;
+  state.selected = [];
+  // Render all objects
+  state.objects.forEach(o=>renderObject(o));
+  updatePropsPanel();
+  updateLayers();
+  updatePagesPanel();
+  document.getElementById('st-page').textContent = 'Page: ' + page.name;
+}
+
+function addPage() {
+  const name = prompt('Page name:', 'Page ' + state.nextPageId);
+  if (!name) return;
+  const id = 'page' + state.nextPageId++;
+  state.pages.push({id, name, objects:[], nextId:1});
+  loadPage(id);
+}
+
+function renamePage(pageId) {
+  const page = state.pages.find(p=>p.id===pageId);
+  if (!page) return;
+  const newName = prompt('Rename page:', page.name);
+  if (!newName) return;
+  page.name = newName;
+  if (pageId===state.currentPageId) document.getElementById('st-page').textContent = 'Page: '+newName;
+  updatePagesPanel();
+}
+
+function deletePage(pageId) {
+  if (state.pages.length<=1) { alert('Cannot delete the last page.'); return; }
+  const page = state.pages.find(p=>p.id===pageId);
+  if (!confirm('Delete page "'+page.name+'"?')) return;
+  const idx = state.pages.findIndex(p=>p.id===pageId);
+  state.pages.splice(idx,1);
+  if (state.currentPageId===pageId) {
+    const newPage = state.pages[Math.max(0,idx-1)];
+    // Clear canvas first without saving
+    state.objects.forEach(o=>{const el=document.getElementById(o.id);if(el)el.remove();});
+    state.objects=[];
+    state.selected=[];
+    state.currentPageId = newPage.id;
+    const np = getCurrentPage();
+    state.objects = JSON.parse(JSON.stringify(np.objects));
+    state.nextId = np.nextId;
+    state.objects.forEach(o=>renderObject(o));
+    updatePropsPanel();
+    updateLayers();
+    document.getElementById('st-page').textContent = 'Page: '+np.name;
+  }
+  updatePagesPanel();
+}
+
+function duplicatePage(pageId) {
+  saveCurrentPage();
+  const page = state.pages.find(p=>p.id===pageId);
+  if (!page) return;
+  const newId = 'page'+state.nextPageId++;
+  const newPage = {id:newId, name:page.name+' (copy)', objects:JSON.parse(JSON.stringify(page.objects)), nextId:page.nextId};
+  const idx = state.pages.findIndex(p=>p.id===pageId);
+  state.pages.splice(idx+1,0,newPage);
+  loadPage(newId);
+}
+
+function updatePagesPanel() {
+  const list = document.getElementById('pages-list');
+  if (!list) return;
+  list.innerHTML = '';
+  state.pages.forEach(page=>{
+    const el = document.createElement('div');
+    el.className = 'page-item' + (page.id===state.currentPageId?' active':'');
+    el.innerHTML = `
+      <i class="ti ti-file" style="font-size:13px;color:#888;flex-shrink:0;"></i>
+      <span class="page-item-name" title="${page.name}">${page.name}</span>
+      <div class="page-item-actions">
+        <button class="page-act-btn" title="Rename" onclick="event.stopPropagation();renamePage('${page.id}')"><i class="ti ti-pencil"></i></button>
+        <button class="page-act-btn" title="Duplicate" onclick="event.stopPropagation();duplicatePage('${page.id}')"><i class="ti ti-copy"></i></button>
+        <button class="page-act-btn" title="Delete" onclick="event.stopPropagation();deletePage('${page.id}')" style="color:#f88;"><i class="ti ti-trash"></i></button>
+      </div>`;
+    el.onclick = ()=>{ if(page.id!==state.currentPageId) loadPage(page.id); };
+    list.appendChild(el);
+  });
+}
+
+function exportProject() {
+  saveCurrentPage();
+  const data = JSON.stringify({objects:state.objects, resolution:state.resolution, nextId:state.nextId, pages:state.pages, currentPageId:state.currentPageId, nextPageId:state.nextPageId}, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='project.webmaker.json'; a.click();
+}
+
+function importProject() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json,.webmaker.json';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        state.objects.forEach(o=>{const el=document.getElementById(o.id);if(el)el.remove();});
+        state.objects = data.objects||[];
+        state.resolution = data.resolution||{w:1920,h:1080};
+        state.nextId = data.nextId||1;
+        if (data.pages) {
+          state.pages = data.pages;
+          state.currentPageId = data.currentPageId||state.pages[0].id;
+          state.nextPageId = data.nextPageId||state.pages.length+1;
+        } else {
+          state.pages = [{id:'page1',name:'Page 1',objects:state.objects,nextId:state.nextId}];
+          state.currentPageId = 'page1';
+          state.nextPageId = 2;
+        }
+        canvas.style.width=state.resolution.w+'px';
+        canvas.style.height=state.resolution.h+'px';
+        const cp = getCurrentPage();
+        state.objects = cp ? JSON.parse(JSON.stringify(cp.objects)) : state.objects;
+        state.nextId = cp ? cp.nextId : state.nextId;
+        state.objects.forEach(o=>renderObject(o));
+        updateTransform();
+        updateLayers();
+        updatePagesPanel();
+        document.getElementById('st-page').textContent = 'Page: '+(cp?cp.name:'Page 1');
+      } catch(err) { alert('Error loading project: '+err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function downloadHTML() {
+  saveCurrentPage();
+  // Build page filename map
+  const pageFiles = {};
+  state.pages.forEach((p,i)=>{ pageFiles[p.id] = i===0?'index.html':p.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.html'; });
+
+  const zip = [];
+  state.pages.forEach(page => {
+    const objs = page.objects;
+    let html = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>${page.name}</title>\n<style>\nbody{margin:0;padding:0;}\n#page{position:relative;width:${state.resolution.w}px;height:${state.resolution.h}px;overflow:hidden;}\n.obj{position:absolute;box-sizing:border-box;}\n</style>\n`;
+    html += `</head>\n<body>\n<div id="page">\n`;
+    const sorted = [...objs].sort((a,b)=>(a.zIndex||0)-(b.zIndex||0));
+    sorted.forEach(obj => {
+      let inner = getInnerHTML(obj);
+      // Replace linkbutton onclick with real navigation
+      if (obj.type==='linkbutton') {
+        const target = obj.linkTargetType==='page' ? (pageFiles[obj.linkTarget]||'#') : (obj.linkTarget||'#');
+        inner = `<button style="width:100%;height:100%;box-sizing:border-box;background:${obj.bg||'#4a9eff'};color:${obj.color||'#fff'};font-size:${obj.fontSize||13}px;border:none;border-radius:${obj.borderRadius||4}px;cursor:pointer;" onclick="window.location.href='${target}'">${obj.text||'Go to Page'} <span style="font-size:10px;opacity:.7;">↗</span></button>`;
+      }
+      const style = `left:${obj.x}px;top:${obj.y}px;width:${obj.w}px;height:${obj.h}px;transform:rotate(${obj.rotation||0}deg);z-index:${obj.zIndex||1};opacity:${obj.opacity!=null?obj.opacity:1};`;
+      html += `  <div class="obj" style="${style}">${inner}</div>\n`;
+    });
+    html += `</div>\n</body>\n</html>`;
+    zip.push({name:pageFiles[page.id], content:html});
+  });
+
+  if (zip.length===1) {
+    const blob = new Blob([zip[0].content], {type:'text/html'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='website.html'; a.click();
+  } else {
+    // Multi-page: download as separate files with a note
+    zip.forEach(f=>{
+      const blob = new Blob([f.content], {type:'text/html'});
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=f.name; a.click();
+    });
+    alert('Downloaded '+zip.length+' HTML files! Place them all in the same folder for links to work.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
